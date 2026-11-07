@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portail Gestion des Étudiants | Spring Boot & Swagger</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js pour la visualisation des statistiques par année -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+            --hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        body {
+            background-color: #f8fafc;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #1e293b;
+        }
+
+        .navbar-custom {
+            background: var(--primary-gradient);
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.25);
+        }
+
+        .stat-card {
+            background: white;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--hover-shadow);
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .content-card {
+            background: white;
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .table-custom th {
+            background-color: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            padding: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .table-custom td {
+            padding: 1rem;
+            vertical-align: middle;
+            border-color: #f1f5f9;
+        }
+
+        .badge-year {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            font-weight: 600;
+            padding: 0.4rem 0.75rem;
+            border-radius: 20px;
+        }
+
+        .btn-swagger {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            padding: 0.4rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .btn-swagger:hover {
+            background-color: white;
+            color: #4f46e5;
+        }
+
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .toast-container {
+            z-index: 1090;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="#">
+                <i class="fa-solid fa-graduation-cap fs-4"></i>
+                <span>Student Management System</span>
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <a href="/swagger-ui.html" target="_blank" class="btn-swagger">
+                    <i class="fa-solid fa-book-open me-2"></i>Documentation Swagger UI
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container py-4">
+
+        <!-- En-tête & Bouton d'action -->
+        <div class="row align-items-center mb-4">
+            <div class="col-md-8">
+                <h2 class="fw-bold text-slate-800 mb-1">Tableau de Bord des Étudiants</h2>
+                <p class="text-muted mb-0">Interface connectée en temps réel aux endpoints REST Spring Boot & JPA.</p>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <button class="btn btn-primary px-4 py-2 rounded-pill shadow-sm" onclick="openStudentModal()">
+                    <i class="fa-solid fa-user-plus me-2"></i>Ajouter un Étudiant
+                </button>
+            </div>
+        </div>
+
+        <!-- Cartes Statistiques KPI -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="stat-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small text-uppercase fw-semibold">Total Étudiants</span>
+                            <h2 class="fw-bold mt-2 mb-0" id="totalCount">0</h2>
+                            <span class="badge bg-success-subtle text-success mt-2">
+                                <i class="fa-solid fa-arrow-trend-up me-1"></i>Endpoint <code>/students/count</code>
+                            </span>
+                        </div>
+                        <div class="stat-icon bg-primary-subtle text-primary">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="stat-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small text-uppercase fw-semibold">Promotions / Années</span>
+                            <h2 class="fw-bold mt-2 mb-0" id="distinctYearsCount">0</h2>
+                            <span class="badge bg-primary-subtle text-primary mt-2">
+                                <i class="fa-solid fa-layer-group me-1"></i>Requête JPQL <code>GROUP BY</code>
+                            </span>
+                        </div>
+                        <div class="stat-icon bg-info-subtle text-info">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="stat-card p-4">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <span class="text-muted small text-uppercase fw-semibold">Statut Backend</span>
+                            <h2 class="fw-bold mt-2 mb-0 text-success fs-3">Opérationnel</h2>
+                            <span class="badge bg-success-subtle text-success mt-2">
+                                <i class="fa-solid fa-circle-check me-1"></i>Spring Boot 3.3.4
+                            </span>
+                        </div>
+                        <div class="stat-icon bg-success-subtle text-success">
+                            <i class="fa-solid fa-server"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section Graphique & Répartition par Année -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8">
+                <div class="content-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">
+                            <i class="fa-solid fa-chart-column text-primary me-2"></i>Répartition des Effectifs par Année de Naissance
+                        </h5>
+                        <span class="badge bg-secondary-subtle text-secondary">
+                            <code>GET /students/byYear</code>
+                        </span>
+                    </div>
+                    <div style="height: 260px; position: relative;">
+                        <canvas id="yearsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="content-card p-4 h-100">
+                    <h5 class="fw-bold mb-3">
+                        <i class="fa-solid fa-list-check text-indigo me-2"></i>Détail Statistique
+                    </h5>
+                    <p class="text-muted small">Résultat direct renvoyé par la requête JPQL :</p>
+                    <div id="statsSummaryList" class="d-flex flex-column gap-2">
+                        <!-- Rempli dynamiquement -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tableau de Gestion des Étudiants -->
+        <div class="content-card">
+            <div class="p-4 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <h5 class="fw-bold mb-1">Liste des Étudiants Enregistrés</h5>
+                    <p class="text-muted small mb-0">Endpoint <code>GET /students/all</code> avec mise à jour instantanée.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <input type="text" id="searchInput" class="form-control rounded-pill px-3" placeholder="Rechercher nom, prénom..." onkeyup="filterStudents()">
+                    <button class="btn btn-outline-secondary rounded-pill px-3" onclick="loadAllData()" title="Rafraîchir">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-custom table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">ID</th>
+                            <th>Nom & Prénom</th>
+                            <th>Date de Naissance</th>
+                            <th>Année Promo</th>
+                            <th class="text-end" style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsTableBody">
+                        <!-- Rempli par JavaScript -->
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                Chargement des étudiants...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modal d'Ajout / Modification d'un Étudiant -->
+    <div class="modal fade" id="studentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="modalTitle">Ajouter un Étudiant</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="studentForm" onsubmit="handleFormSubmit(event)">
+                    <div class="modal-body py-4">
+                        <input type="hidden" id="studentId">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nom de famille <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" id="studentNom" placeholder="ex: LACHGAR" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Prénom <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control rounded-3" id="studentPrenom" placeholder="ex: Mohamed" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Date de Naissance <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control rounded-3" id="studentDateNaissance" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4" id="submitBtn">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-white border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage">Action réussie !</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let studentsData = [];
+        let chartInstance = null;
+        const studentModal = new bootstrap.Modal(document.getElementById('studentModal'));
+        const toastElement = document.getElementById('liveToast');
+        const toast = new bootstrap.Toast(toastElement);
+
+        function showToast(message, isSuccess = true) {
+            document.getElementById('toastMessage').textContent = message;
+            toastElement.className = `toast align-items-center text-white border-0 shadow-lg ${isSuccess ? 'bg-success' : 'bg-danger'}`;
+            toast.show();
+        }
+
+        // Chargement global de toutes les données
+        async function loadAllData() {
+            await Promise.all([loadStudents(), loadCount(), loadByYear()]);
+        }
+
+        // 1. GET /students/all
+        async function loadStudents() {
+            try {
+                const response = await fetch('/students/all');
+                if (!response.ok) throw new Error('Impossible de récupérer la liste des étudiants');
+                studentsData = await response.json();
+                renderTable(studentsData);
+            } catch (err) {
+                console.error(err);
+                document.getElementById('studentsTableBody').innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-danger">
+                            <i class="fa-solid fa-triangle-exclamation fs-3 mb-2 d-block"></i>
+                            Erreur de communication avec le serveur (${err.message})
+                        </td>
+                    </tr>`;
+            }
+        }
+
+        // 2. GET /students/count
+        async function loadCount() {
+            try {
+                const response = await fetch('/students/count');
+                if (response.ok) {
+                    const count = await response.json();
+                    document.getElementById('totalCount').textContent = count;
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // 3. GET /students/byYear
+        async function loadByYear() {
+            try {
+                const response = await fetch('/students/byYear');
+                if (!response.ok) return;
+                const stats = await response.json(); // Format attendu: [[1985, 2], [1990, 1]]
+
+                const labels = [];
+                const values = [];
+                const summaryContainer = document.getElementById('statsSummaryList');
+                summaryContainer.innerHTML = '';
+
+                document.getElementById('distinctYearsCount').textContent = stats.length;
+
+                stats.forEach(item => {
+                    const year = item[0];
+                    const count = item[1];
+                    labels.push(year.toString());
+                    values.push(count);
+
+                    summaryContainer.innerHTML += `
+                        <div class="d-flex justify-content-between align-items-center p-2 rounded-3 bg-light">
+                            <span class="fw-semibold"><i class="fa-regular fa-calendar me-2 text-primary"></i>Année ${year}</span>
+                            <span class="badge bg-primary rounded-pill px-3 py-1">${count} étudiant${count > 1 ? 's' : ''}</span>
+                        </div>
+                    `;
+                });
+
+                renderChart(labels, values);
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Rendu du tableau des étudiants
+        function renderTable(data) {
+            const tbody = document.getElementById('studentsTableBody');
+            if (data.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="fa-solid fa-folder-open fs-2 d-block mb-2 text-secondary"></i>
+                            Aucun étudiant enregistré pour l'instant.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map(st => {
+                const date = st.dateNaissance ? st.dateNaissance.split('T')[0] : 'N/A';
+                const year = date !== 'N/A' ? date.split('-')[0] : 'N/A';
+
+                return `
+                    <tr>
+                        <td class="fw-bold text-secondary">#${st.id}</td>
+                        <td>
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle bg-primary-subtle text-primary fw-bold d-flex align-items-center justify-content-center" style="width: 38px; height: 38px; font-size: 0.9rem;">
+                                    ${st.prenom.charAt(0)}${st.nom.charAt(0)}
+                                </div>
+                                <div>
+                                    <div class="fw-bold text-dark">${escapeHtml(st.nom)} ${escapeHtml(st.prenom)}</div>
+                                    <small class="text-muted">ID: ${st.id}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <i class="fa-regular fa-calendar-check text-muted me-2"></i>${date}
+                        </td>
+                        <td>
+                            <span class="badge-year">${year}</span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary rounded-circle me-1" onclick="editStudent(${st.id})" title="Modifier">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger rounded-circle" onclick="deleteStudent(${st.id}, '${escapeHtml(st.prenom)} ${escapeHtml(st.nom)}')" title="Supprimer">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // Rendu du graphique Chart.js
+        function renderChart(labels, values) {
+            const ctx = document.getElementById('yearsChart').getContext('2d');
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: "Nombre d'étudiants",
+                        data: values,
+                        backgroundColor: 'rgba(79, 70, 229, 0.75)',
+                        borderColor: '#4f46e5',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        maxBarThickness: 50
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.raw} étudiant${ctx.raw > 1 ? 's' : ''}`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Filtre de recherche dans le tableau
+        function filterStudents() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = studentsData.filter(st =>
+                st.nom.toLowerCase().includes(query) ||
+                st.prenom.toLowerCase().includes(query) ||
+                (st.dateNaissance && st.dateNaissance.includes(query))
+            );
+            renderTable(filtered);
+        }
+
+        // Ouvrir modal d'ajout
+        function openStudentModal() {
+            document.getElementById('studentId').value = '';
+            document.getElementById('studentForm').reset();
+            document.getElementById('modalTitle').textContent = "Ajouter un Étudiant";
+            document.getElementById('submitBtn').textContent = "Ajouter";
+            studentModal.show();
+        }
+
+        // Ouvrir modal de modification
+        function editStudent(id) {
+            const st = studentsData.find(s => s.id === id);
+            if (!st) return;
+
+            document.getElementById('studentId').value = st.id;
+            document.getElementById('studentNom').value = st.nom;
+            document.getElementById('studentPrenom').value = st.prenom;
+            document.getElementById('studentDateNaissance').value = st.dateNaissance ? st.dateNaissance.split('T')[0] : '';
+
+            document.getElementById('modalTitle').textContent = "Modifier l'Étudiant #" + st.id;
+            document.getElementById('submitBtn').textContent = "Mettre à jour";
+            studentModal.show();
+        }
+
+        // Soumission du formulaire (POST /students/save)
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            const idVal = document.getElementById('studentId').value;
+            const payload = {
+                nom: document.getElementById('studentNom').value.trim(),
+                prenom: document.getElementById('studentPrenom').value.trim(),
+                dateNaissance: document.getElementById('studentDateNaissance').value
+            };
+            if (idVal) {
+                payload.id = parseInt(idVal, 10);
+            }
+
+            try {
+                const response = await fetch('/students/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorJson = await response.json().catch(() => null);
+                    throw new Error(errorJson?.message || 'Erreur lors de la sauvegarde');
+                }
+
+                studentModal.hide();
+                showToast(idVal ? "Étudiant mis à jour avec succès !" : "Étudiant ajouté avec succès !");
+                await loadAllData();
+            } catch (err) {
+                alert("Erreur: " + err.message);
+            }
+        }
+
+        // Suppression (DELETE /students/delete/{id})
+        async function deleteStudent(id, name) {
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer l'étudiant "${name}" (ID: ${id}) ?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/students/delete/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.status === 204) {
+                    showToast(`Étudiant "${name}" supprimé.`);
+                    await loadAllData();
+                } else if (response.status === 404) {
+                    alert("Cet étudiant n'existe pas en base.");
+                } else {
+                    alert("Erreur inattendue lors de la suppression.");
+                }
+            } catch (err) {
+                alert("Erreur de connexion : " + err.message);
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Lancement initial
+        document.addEventListener('DOMContentLoaded', loadAllData);
+    </script>
+</body>
+</html>

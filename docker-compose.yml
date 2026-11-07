@@ -1,0 +1,15 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: student-mysql-db
+    restart: always
+    environment:
+      MYSQL_DATABASE: studentdb
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_student_data:/var/lib/mysql
+
+volumes:
+  mysql_student_data:
